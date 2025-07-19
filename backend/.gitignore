@@ -1,0 +1,50 @@
+# Node.js dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# dotenv environment variables
+.env
+.env.*.local
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+
+# React dev build
+frontend/node_modules/
+frontend/build/
+
+# Optional: If you're using testing tools
+coverage/
+
+# Optional: If using TypeScript
+*.tsbuildinfo
+
+# Optional: Mac/Linux system files
+*.DS_Store
+*.log
+
+# Optional: Windows system files
+*.exe
+*.dll
+*.msi
+*.lnk
