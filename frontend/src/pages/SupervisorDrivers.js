@@ -60,7 +60,21 @@ function SupervisorDrivers() {
                 <tr key={driver._id}>
                   <td>{driver.name}</td>
                   <td>{driver.email}</td>
-                  <td>{getBatchCount(driver._id)}</td>
+                  <td>
+                    {
+                      batches.filter(b => {
+                        // Support both string and object for assignedDriverId
+                        if (!b.assignedDriverId) return false;
+                        if (typeof b.assignedDriverId === 'string') {
+                          return b.assignedDriverId === driver._id;
+                        }
+                        if (typeof b.assignedDriverId === 'object' && b.assignedDriverId._id) {
+                          return b.assignedDriverId._id === driver._id;
+                        }
+                        return false;
+                      }).length
+                    }
+                  </td>
                   {/* <td>TODO: Cash-in-Hand</td> */}
                 </tr>
               ))}

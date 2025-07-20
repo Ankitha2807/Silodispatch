@@ -1,5 +1,6 @@
 const express = require('express');
-const { authMiddleware, requireRole } = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
+const { requireRole } = require('../middleware/authMiddleware');
 const Order = require('../models/Order');
 const Batch = require('../models/Batch');
 const Payment = require('../models/Payment');

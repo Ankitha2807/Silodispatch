@@ -10,7 +10,9 @@ import SupervisorDashboard from './pages/SupervisorDashboard';
 import DriverDashboard from './pages/DriverDashboard';
 import SupervisorOrders from './pages/SupervisorOrders';
 import SupervisorDrivers from './pages/SupervisorDrivers';
-import SupervisorReports from './pages/SupervisorReports';
+import SupervisorSettlements from './pages/SupervisorSettlements';
+import SupervisorSettlementRequests from './pages/SupervisorSettlementRequests';
+import DriverSettlement from './pages/DriverSettlement';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
@@ -37,15 +39,23 @@ function AppNavbar({ user, isLoggedIn, handleLogout }) {
                 <Nav.Link as={Link} to="/supervisor/drivers" active={location.pathname === '/supervisor/drivers'}>
                   <FontAwesomeIcon icon={faTruck} className="me-1" /> Drivers
                 </Nav.Link>
-                <Nav.Link as={Link} to="/supervisor/reports" active={location.pathname === '/supervisor/reports'}>
-                  <FontAwesomeIcon icon={faChartBar} className="me-1" /> Reports
+                <Nav.Link as={Link} to="/supervisor/settlements" active={location.pathname === '/supervisor/settlements'}>
+                  <FontAwesomeIcon icon={faMapMarkerAlt} className="me-1" /> Settlements
+                </Nav.Link>
+                <Nav.Link as={Link} to="/supervisor/settlement-requests" active={location.pathname === '/supervisor/settlement-requests'}>
+                  <FontAwesomeIcon icon={faBell} className="me-1" /> Settlement Requests
                 </Nav.Link>
               </>
             )}
             {isLoggedIn && user?.role === 'DRIVER' && (
-              <Nav.Link as={Link} to="/driver" active={location.pathname === '/driver'}>
-                <FontAwesomeIcon icon={faHome} className="me-1" /> Dashboard
-              </Nav.Link>
+              <>
+                <Nav.Link as={Link} to="/driver" active={location.pathname === '/driver'}>
+                  <FontAwesomeIcon icon={faHome} className="me-1" /> Dashboard
+                </Nav.Link>
+                <Nav.Link as={Link} to={`/driver/settlement/${user.id}`} active={location.pathname.includes('/driver/settlement')}>
+                  <FontAwesomeIcon icon={faMapMarkerAlt} className="me-1" /> My Settlements
+                </Nav.Link>
+              </>
             )}
           </Nav>
           <Nav className="align-items-center gap-3">
@@ -96,7 +106,10 @@ function App() {
           <Route path="/driver" element={<ProtectedRoute role="DRIVER"><DriverDashboard user={user} /></ProtectedRoute>} />
           <Route path="/supervisor/orders" element={<ProtectedRoute role="SUPERVISOR"><SupervisorOrders /></ProtectedRoute>} />
           <Route path="/supervisor/drivers" element={<ProtectedRoute role="SUPERVISOR"><SupervisorDrivers /></ProtectedRoute>} />
-          <Route path="/supervisor/reports" element={<ProtectedRoute role="SUPERVISOR"><SupervisorReports /></ProtectedRoute>} />
+          <Route path="/supervisor/settlements" element={<ProtectedRoute role="SUPERVISOR"><SupervisorSettlements /></ProtectedRoute>} />
+          <Route path="/supervisor/settlement-requests" element={<ProtectedRoute role="SUPERVISOR"><SupervisorSettlementRequests /></ProtectedRoute>} />
+          <Route path="/supervisor/driver-settlement/:driverId" element={<ProtectedRoute role="SUPERVISOR"><DriverSettlement /></ProtectedRoute>} />
+          <Route path="/driver/settlement/:driverId" element={<ProtectedRoute role="DRIVER"><DriverSettlement /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       </div>

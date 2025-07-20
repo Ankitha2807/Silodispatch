@@ -3,6 +3,8 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Payment = require('../models/Payment');
 const Order = require('../models/Order');
+const DriverAction = require('../models/DriverAction');
+const authMiddleware = require('../middleware/authMiddleware');
 const router = express.Router();
 
 const razorpay = new Razorpay({
@@ -13,7 +15,8 @@ const razorpay = new Razorpay({
 router.post('/create-order', async (req, res) => {
   try {
     const { amount, currency = 'INR', receipt, notes } = req.body;
-    console.log('Creating Razorpay order with:', { amount, currency, receipt, notes });
+    // Instead of logging the whole options object, log only the amount and currency
+    console.log('Creating Razorpay order with:', { amount, currency });
     
     if (!amount || amount <= 0) {
       return res.status(400).json({ error: 'Invalid amount' });
@@ -26,10 +29,12 @@ router.post('/create-order', async (req, res) => {
       payment_capture: 1,
       notes: notes || {}
     };
+    // Instead of logging the whole order, log only the id and status
     console.log('Razorpay options:', options);
     
     const order = await razorpay.orders.create(options);
-    console.log('Razorpay order created:', order);
+    // Instead of logging the whole order, log only the id and status
+    console.log('Razorpay order created:', order.id, order.status);
     res.json(order);
   } catch (err) {
     console.error('Razorpay order creation error:', err);
@@ -54,7 +59,7 @@ router.post('/create-order', async (req, res) => {
   }
 });
 
-router.post('/verify', async (req, res) => {
+router.post('/verify', authMiddleware, async (req, res) => {
   try {
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId } = req.body;
     
@@ -75,24 +80,59 @@ router.post('/verify', async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
     
-    // Create payment record
-    const payment = new Payment({
-      orderId: orderId,
-      method: 'UPI',
-      amount: order.amount,
-      status: 'CONFIRMED'
-    });
-    await payment.save();
+    // Create or update payment record
+    const payment = await Payment.findOneAndUpdate(
+      { orderId: orderId },
+      {
+        orderId: orderId,
+        method: 'UPI',
+        amount: order.amount,
+        status: 'CONFIRMED',
+        razorpayPaymentId: razorpay_payment_id,
+        razorpayOrderId: razorpay_order_id,
+        timestamp: new Date()
+      },
+      { upsert: true, new: true }
+    );
     
-    // Update order status if needed
-    if (order.status === 'ASSIGNED') {
-      order.status = 'DELIVERED';
-      await order.save();
-    }
+    // Update order payment status
+    order.paymentStatus = 'RECEIVED';
+    order.paymentCollectedAt = new Date();
+    order.paymentCollectedBy = req.user.id;
+    order.paymentMethod = 'UPI';
+    await order.save();
+    
+    // Record driver action
+    await DriverAction.create({
+      driverId: req.user.id,
+      orderId: orderId,
+      batchId: order.batchId,
+      actionType: 'UPI_COLLECTED',
+      actionData: {
+        amount: order.amount,
+        paymentMethod: 'UPI',
+        notes: 'UPI payment verified and collected',
+        razorpayPaymentId: razorpay_payment_id
+      }
+    });
     
     res.json({ message: 'Payment verified successfully', payment });
   } catch (err) {
     console.error('Payment verification error:', err);
+    
+    // Record failed action
+    try {
+      await DriverAction.create({
+        driverId: req.user.id,
+        orderId: req.body.orderId,
+        actionType: 'UPI_COLLECTED',
+        success: false,
+        errorMessage: err.message
+      });
+    } catch (actionErr) {
+      console.error('Failed to record failed action:', actionErr);
+    }
+    
     res.status(500).json({ message: 'Payment verification failed', error: err.message });
   }
 });

@@ -1,13 +1,15 @@
 const express = require('express');
-const { authMiddleware, requireRole } = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
+const { requireRole } = require('../middleware/authMiddleware');
 const Batch = require('../models/Batch');
 const Order = require('../models/Order');
 const { generateBatches } = require('../controllers/batchController');
+const mongoose = require('mongoose');
 
 const router = express.Router();
 
 // POST /api/batches/generate (generate batches from orders)
-router.post('/generate', authMiddleware, async (req, res) => {
+router.post('/generate', authMiddleware, requireRole('SUPERVISOR'), async (req, res) => {
   try {
     const batches = await generateBatches();
     res.json({ message: 'Batches generated', batches });
@@ -37,12 +39,36 @@ router.get('/today', authMiddleware, async (req, res) => {
 // GET /api/batches/all (get all batches)
 router.get('/all', authMiddleware, async (req, res) => {
   try {
-    const batches = await Batch.find()
-      .populate('orders')
-      .populate('assignedDriverId');
+    console.log('[DEBUG] req.user:', req.user);
+    console.log('[DEBUG] req.user.id:', req.user.id, 'type:', typeof req.user.id);
+    let batches;
+    let driverObjectId;
+    try {
+      driverObjectId = require('mongoose').Types.ObjectId(req.user.id);
+      console.log('[DEBUG] driverObjectId:', driverObjectId, 'type:', typeof driverObjectId);
+    } catch (e) {
+      console.log('[DEBUG] Error converting req.user.id to ObjectId:', e);
+      driverObjectId = req.user.id;
+    }
+    // Print all batches' assignedDriverId for debugging
+    const allBatches = await Batch.find();
+    console.log('[DEBUG] All batches assignedDriverId:');
+    allBatches.forEach(b => {
+      console.log(`  Batch ${b._id}: assignedDriverId =`, b.assignedDriverId, 'type:', typeof b.assignedDriverId, b.assignedDriverId && b.assignedDriverId.toString());
+    });
+    if (req.user.role === 'DRIVER') {
+      batches = await Batch.find({ assignedDriverId: driverObjectId }).populate('orders');
+      console.log('[DEBUG] DRIVER batches query:', { assignedDriverId: driverObjectId });
+    } else if (req.user.role === 'SUPERVISOR' || req.user.role === 'ADMIN') {
+      batches = await Batch.find().populate('orders');
+      console.log('[DEBUG] SUPERVISOR/ADMIN batches query: all');
+    } else {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+    console.log('[DEBUG] batches.length:', batches.length);
     res.json(batches);
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch all batches', error: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -110,9 +136,13 @@ router.patch('/:id/assign', authMiddleware, async (req, res) => {
 
 // GET /api/batches/:id (get batch details)
 router.get('/:id', authMiddleware, async (req, res) => {
-  const batch = await Batch.findById(req.params.id).populate('orders').populate('assignedDriverId');
-  if (!batch) return res.status(404).json({ message: 'Batch not found' });
-  res.json(batch);
+  try {
+    const batch = await Batch.findById(req.params.id).populate('orders').populate('assignedDriverId');
+    if (!batch) return res.status(404).json({ message: 'Batch not found' });
+    res.json(batch);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch batch details', error: err.message });
+  }
 });
 
 // Danger: Only for development/testing!

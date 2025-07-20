@@ -44,4 +44,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection:', reason && reason.message ? reason.message : reason);
+});
+
 module.exports = app; 
