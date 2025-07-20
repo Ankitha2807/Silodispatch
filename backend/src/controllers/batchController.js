@@ -85,4 +85,86 @@ async function generateBatches() {
   return batchDocs;
 }
 
-module.exports = { generateBatches }; 
+// Check if all orders in a batch are delivered and mark batch as completed
+async function checkAndUpdateBatchStatus(batchId) {
+  try {
+    const batch = await Batch.findById(batchId).populate('orders');
+    if (!batch) return null;
+
+    // Check if all orders in the batch are delivered
+    const allDelivered = batch.orders.every(order => order.status === 'DELIVERED');
+    
+    if (allDelivered && batch.status !== 'COMPLETED') {
+      // Update batch status to completed
+      const updatedBatch = await Batch.findByIdAndUpdate(
+        batchId,
+        {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+          completionNotes: `All ${batch.orders.length} orders delivered successfully`
+        },
+        { new: true }
+      );
+      
+      console.log(`✅ Batch ${batchId} marked as COMPLETED - All orders delivered`);
+      return updatedBatch;
+    }
+    
+    return batch;
+  } catch (error) {
+    console.error('Error checking batch status:', error);
+    return null;
+  }
+}
+
+// Get batch statistics
+async function getBatchStats() {
+  try {
+    const stats = await Batch.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          totalWeight: { $sum: '$totalWeight' }
+        }
+      }
+    ]);
+    
+    const formattedStats = {
+      pending: 0,
+      inProgress: 0,
+      completed: 0,
+      cancelled: 0,
+      totalWeight: 0
+    };
+    
+    stats.forEach(stat => {
+      switch (stat._id) {
+        case 'PENDING':
+          formattedStats.pending = stat.count;
+          break;
+        case 'IN_PROGRESS':
+          formattedStats.inProgress = stat.count;
+          break;
+        case 'COMPLETED':
+          formattedStats.completed = stat.count;
+          break;
+        case 'CANCELLED':
+          formattedStats.cancelled = stat.count;
+          break;
+      }
+      formattedStats.totalWeight += stat.totalWeight || 0;
+    });
+    
+    return formattedStats;
+  } catch (error) {
+    console.error('Error getting batch stats:', error);
+    return null;
+  }
+}
+
+module.exports = { 
+  generateBatches, 
+  checkAndUpdateBatchStatus, 
+  getBatchStats 
+}; 

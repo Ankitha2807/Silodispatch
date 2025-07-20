@@ -60,12 +60,6 @@ function AppNavbar({ user, isLoggedIn, handleLogout }) {
           </Nav>
           <Nav className="align-items-center gap-3">
             {isLoggedIn && (
-              <Nav.Link as={Link} to="#" className="position-relative">
-                <FontAwesomeIcon icon={faBell} size="lg" />
-                <Badge bg="danger" pill className="position-absolute top-0 start-100 translate-middle" style={{ fontSize: 10 }}>3</Badge>
-              </Nav.Link>
-            )}
-            {isLoggedIn && (
               <Dropdown align="end">
                 <Dropdown.Toggle variant="light" className="d-flex align-items-center border-0 shadow-none">
                   <FontAwesomeIcon icon={faUserCircle} size="2x" className="text-primary me-2" />

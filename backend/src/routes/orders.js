@@ -1,5 +1,6 @@
 const express = require('express');
-const authMiddleware  = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
+const { requireRole } = require('../middleware/authMiddleware');
 const Order = require('../models/Order');
 const multer = require('multer');
 const csv = require('csv-parse');
@@ -10,6 +11,7 @@ const crypto = require('crypto');
 const CashLedger = require('../models/CashLedger');
 const DriverAction = require('../models/DriverAction');
 const Payment = require('../models/Payment');
+const { checkAndUpdateBatchStatus } = require('../controllers/batchController');
 
 const router = express.Router();
 
@@ -456,8 +458,21 @@ router.post('/:id/mark-delivered', authMiddleware, async (req, res) => {
       }
     });
     
+    // Check if batch is completed (all orders delivered)
+    let batchCompleted = false;
+    if (order.batchId) {
+      const updatedBatch = await checkAndUpdateBatchStatus(order.batchId);
+      if (updatedBatch && updatedBatch.status === 'COMPLETED') {
+        batchCompleted = true;
+      }
+    }
+    
     console.log(`Order ${orderId} marked as delivered. Payment type: ${order.paymentType}`);
-    res.json({ message: 'Order marked as delivered', order: order });
+    res.json({ 
+      message: 'Order marked as delivered', 
+      order: order,
+      batchCompleted: batchCompleted
+    });
   } catch (err) {
     console.error('Mark delivered error:', err);
     // Record failed action
@@ -473,6 +488,56 @@ router.post('/:id/mark-delivered', authMiddleware, async (req, res) => {
       console.error('Failed to record failed action:', actionErr);
     }
     res.status(500).json({ message: 'Failed to mark as delivered', error: err.message });
+  }
+});
+
+// POST /api/orders/manual (create orders manually)
+router.post('/manual', authMiddleware, requireRole('SUPERVISOR'), async (req, res) => {
+  try {
+    const { orders } = req.body;
+    
+    if (!orders || !Array.isArray(orders) || orders.length === 0) {
+      return res.status(400).json({ message: 'Orders array is required and cannot be empty' });
+    }
+
+    const createdOrders = [];
+    
+    for (const orderData of orders) {
+      // Validate required fields
+      if (!orderData.customerName || !orderData.address || !orderData.pincode || 
+          !orderData.phone || !orderData.weight) {
+        return res.status(400).json({ 
+          message: 'Missing required fields: customerName, address, pincode, phone, weight' 
+        });
+      }
+
+      // Set amount to 0 for PREPAID orders
+      const amount = orderData.paymentType === 'PREPAID' ? 0 : (orderData.amount || 0);
+
+      const order = new Order({
+        customerName: orderData.customerName,
+        address: orderData.address,
+        pincode: orderData.pincode,
+        customerPhone: orderData.phone,
+        weight: parseFloat(orderData.weight),
+        amount: parseFloat(amount),
+        paymentType: orderData.paymentType,
+        status: 'PENDING',
+        paymentStatus: orderData.paymentType === 'PREPAID' ? 'RECEIVED' : 'PENDING',
+        createdBy: req.user.id
+      });
+
+      await order.save();
+      createdOrders.push(order);
+    }
+
+    res.json({ 
+      message: `Successfully created ${createdOrders.length} order(s)`,
+      orders: createdOrders
+    });
+  } catch (err) {
+    console.error('Manual order creation error:', err);
+    res.status(500).json({ message: 'Failed to create orders', error: err.message });
   }
 });
 

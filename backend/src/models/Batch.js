@@ -13,6 +13,17 @@ const batchSchema = new mongoose.Schema({
   totalWeight: { 
     type: Number, 
     required: true 
+  },
+  status: {
+    type: String,
+    enum: ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
+    default: 'PENDING'
+  },
+  completedAt: {
+    type: Date
+  },
+  completionNotes: {
+    type: String
   }
 }, { timestamps: true });
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import DriverCompletedBatches from '../components/DriverCompletedBatches';
 
 function DriverDashboard() {
   const [batches, setBatches] = useState([]);
@@ -358,6 +359,11 @@ function DriverDashboard() {
         })));
       }
       
+      // Show batch completion notification
+      if (data.batchCompleted) {
+        alert('🎉 Congratulations! All orders in this batch have been delivered successfully!');
+      }
+      
       // Refresh batches to get updated data
       setTimeout(() => {
         fetchBatches();
@@ -372,6 +378,11 @@ function DriverDashboard() {
   return (
     <div>
       <h2>My Assigned Batches</h2>
+      
+      {/* Driver Completed Batches Section */}
+      <DriverCompletedBatches driverId={JSON.parse(localStorage.getItem('user') || '{}').id || JSON.parse(localStorage.getItem('user') || '{}')._id} />
+      
+      <hr className="my-4" />
       {loading && <div>Loading...</div>}
       {error && <div className="text-danger">{error}</div>}
       {!loading && !error && batches.length === 0 && <div>No batches assigned for today.</div>}

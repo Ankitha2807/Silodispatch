@@ -16,9 +16,9 @@ function DriverSettlement() {
   const [requestLoading, setRequestLoading] = useState(false);
 
   const fetchSettlementData = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
+      setLoading(true);
+      setError('');
+      try {
       const params = new URLSearchParams();
       
       // Only add date filters if not showing all
@@ -402,9 +402,9 @@ function DriverSettlement() {
                 </div>
               </Card.Body>
             </Card>
-          </div>
-        </div>
-      )}
+                          </div>
+                            </div>
+                          )}
 
       {/* Complete Settlement Button */}
       {settlementData && (
@@ -429,7 +429,7 @@ function DriverSettlement() {
                 </p>
               </Card.Body>
             </Card>
-          </div>
+              </div>
         </div>
       )}
     </div>

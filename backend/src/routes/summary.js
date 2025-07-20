@@ -5,14 +5,26 @@ const Order = require('../models/Order');
 const Batch = require('../models/Batch');
 const Payment = require('../models/Payment');
 const User = require('../models/User');
+const ObjectId = require('mongoose').Types.ObjectId;
 
 const router = express.Router();
 
 // GET /api/summary
 router.get('/', authMiddleware, requireRole('SUPERVISOR'), async (req, res) => {
   try {
-    // Pending orders
-    const pendingOrders = await Order.countDocuments({ status: 'PENDING' });
+    // Pending orders: Orders that are PENDING and not in any batch
+    const allBatchesWithOrders = await Batch.find().populate('orders');
+    const ordersInBatches = new Set();
+    allBatchesWithOrders.forEach(batch => {
+      batch.orders.forEach(order => {
+        ordersInBatches.add(order._id.toString());
+      });
+    });
+    
+    const pendingOrders = await Order.countDocuments({ 
+      status: 'PENDING',
+      _id: { $nin: Array.from(ordersInBatches).map(id => new ObjectId(id)) }
+    });
     // Active drivers (drivers with at least one batch assigned)
     const allBatches = await Batch.find({ assignedDriverId: { $ne: null } });
     const activeDriverIds = [...new Set(allBatches.map(b => b.assignedDriverId?.toString()).filter(Boolean))];
@@ -54,6 +66,11 @@ router.get('/', authMiddleware, requireRole('SUPERVISOR'), async (req, res) => {
     const orderTarget = 100; // daily order target
     const revenueTarget = 50000; // daily revenue target
 
+    // Additional statistics for better context
+    const totalOrders = await Order.countDocuments();
+    const deliveredOrders = await Order.countDocuments({ status: 'DELIVERED' });
+    const ordersInProgress = totalOrders - pendingOrders - deliveredOrders;
+    
     res.json({
       pendingOrders,
       activeDrivers,
@@ -62,7 +79,10 @@ router.get('/', authMiddleware, requireRole('SUPERVISOR'), async (req, res) => {
       yesterdayOrders,
       yesterdayRevenue,
       orderTarget,
-      revenueTarget
+      revenueTarget,
+      totalOrders,
+      deliveredOrders,
+      ordersInProgress
     });
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch summary', error: err.message });

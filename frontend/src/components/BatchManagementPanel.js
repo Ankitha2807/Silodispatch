@@ -125,27 +125,25 @@ function BatchManagementPanel() {
   if (error) return <div className="alert alert-danger">{error}</div>;
 
   // Calculate summary stats
-  const unassignedOrders = orders.filter(o => o.status === 'PENDING').length;
-  const readyBatches = batches.filter(b => !b.assignedDriverId).length;
-  const assignedBatches = batches.filter(b => b.assignedDriverId).length;
+  // Ready batches: Batches without driver assignment that are not completed
+  const readyBatches = batches.filter(b => 
+    !b.assignedDriverId && 
+    b.status !== 'COMPLETED'
+  ).length;
+  
+  // Assigned batches: Batches with driver assignment that are not completed
+  const assignedBatches = batches.filter(b => 
+    b.assignedDriverId && 
+    b.status !== 'COMPLETED'
+  ).length;
+  
+  // Completed batches: Batches marked as completed
+  const completedBatches = batches.filter(b => b.status === 'COMPLETED').length;
 
   return (
     <div className="mb-4">
       <h4 className="mb-3">Batch Management</h4>
       <div className="row mb-3 g-3">
-        <div className="col-md-4">
-          <div className="card h-100 shadow-sm border-0 bg-light">
-            <div className="card-body d-flex align-items-center gap-3">
-              <div className="rounded-circle bg-secondary bg-opacity-25 d-flex align-items-center justify-content-center" style={{ width: 40, height: 40 }}>
-                <FontAwesomeIcon icon={faClipboardList} className="text-secondary" />
-              </div>
-              <div>
-                <div className="fw-bold fs-5">{unassignedOrders}</div>
-                <div className="text-muted small">Unassigned Orders</div>
-              </div>
-            </div>
-          </div>
-        </div>
         <div className="col-md-4">
           <div className="card h-100 shadow-sm border-0 bg-light">
             <div className="card-body d-flex align-items-center gap-3">
@@ -172,6 +170,19 @@ function BatchManagementPanel() {
             </div>
           </div>
         </div>
+        <div className="col-md-4">
+          <div className="card h-100 shadow-sm border-0 bg-light">
+            <div className="card-body d-flex align-items-center gap-3">
+              <div className="rounded-circle bg-primary bg-opacity-25 d-flex align-items-center justify-content-center" style={{ width: 40, height: 40 }}>
+                <FontAwesomeIcon icon={faCheckCircle} className="text-primary" />
+              </div>
+              <div>
+                <div className="fw-bold fs-5">{completedBatches}</div>
+                <div className="text-muted small">Completed Batches</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div style={{ maxHeight: '350px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '0.25rem' }}>
         <table className="table table-bordered table-striped mb-0">
@@ -192,7 +203,9 @@ function BatchManagementPanel() {
               <tr key={batch._id}>
                 <td>{batch._id.slice(-5).toUpperCase()}</td>
                 <td>
-                  {batch.assignedDriverId ? (
+                  {batch.status === 'COMPLETED' ? (
+                    <span className="badge bg-primary">Completed</span>
+                  ) : batch.assignedDriverId ? (
                     <span className="badge bg-success">Assigned</span>
                   ) : (
                     <span className="badge bg-warning text-dark">Unassigned</span>
@@ -204,7 +217,7 @@ function BatchManagementPanel() {
                 <td>₹{batch.orders.reduce((sum, o) => sum + (o.amount || 0), 0)}</td>
                 <td>{batch.assignedDriverId ? batch.assignedDriverId.name : '-'}</td>
                 <td>
-                  {!batch.assignedDriverId && (
+                  {batch.status !== 'COMPLETED' && !batch.assignedDriverId && (
                     <button className="btn btn-sm btn-primary" onClick={() => handleAssignClick(batch)}>
                       <FontAwesomeIcon icon={faUserPlus} className="me-1" /> Assign Driver
                     </button>
@@ -227,11 +240,26 @@ function BatchManagementPanel() {
           {selectedBatch && (
             <div>
               <div><b>Batch ID:</b> {selectedBatch._id}</div>
+              <div><b>Status:</b> 
+                {selectedBatch.status === 'COMPLETED' ? (
+                  <span className="badge bg-primary ms-2">Completed</span>
+                ) : selectedBatch.assignedDriverId ? (
+                  <span className="badge bg-success ms-2">Assigned</span>
+                ) : (
+                  <span className="badge bg-warning text-dark ms-2">Unassigned</span>
+                )}
+              </div>
               <div><b>Assigned Driver:</b> {selectedBatch.assignedDriverId
                 ? (selectedBatch.assignedDriverId.name || selectedBatch.assignedDriverId.email || selectedBatch.assignedDriverId._id)
                 : 'Unassigned'}</div>
               <div><b>Total Weight:</b> {selectedBatch.orders.reduce((sum, o) => sum + (o.weight || 0), 0)} kg</div>
               <div><b>Number of Orders:</b> {selectedBatch.orders.length}</div>
+              {selectedBatch.status === 'COMPLETED' && (
+                <>
+                  <div><b>Completed At:</b> {new Date(selectedBatch.completedAt).toLocaleString()}</div>
+                  <div><b>Completion Notes:</b> {selectedBatch.completionNotes || 'All orders delivered successfully'}</div>
+                </>
+              )}
               <hr />
               <h5>Orders</h5>
               <Table striped bordered hover size="sm">

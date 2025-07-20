@@ -4,4 +4,133 @@ info:
   version: 1.0.0
   description: API specification for SiloDispatch Delivery Management System
 paths:
-  # TODO: Add endpoints for orders, batches, OTP, payment, settlement 
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+      responses:
+        '201':
+          description: User registered
+        '400':
+          description: Missing fields
+        '409':
+          description: Email already registered
+  /api/auth/login:
+    post:
+      summary: Login and receive JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+        '400':
+          description: Missing fields
+        '401':
+          description: Invalid credentials
+  /api/orders/upload:
+    post:
+      summary: Upload orders via CSV
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Orders uploaded
+        '400':
+          description: No file or parse error
+  /api/orders/delivered:
+    get:
+      summary: Get all delivered orders
+      responses:
+        '200':
+          description: List of delivered orders
+  /api/orders/pending:
+    get:
+      summary: Get all pending (not delivered) orders
+      responses:
+        '200':
+          description: List of pending orders
+  /api/batches/generate:
+    post:
+      summary: Generate batches from orders (Supervisor only)
+      responses:
+        '200':
+          description: Batches generated
+  /api/batches/today:
+    get:
+      summary: Get today's batches
+      responses:
+        '200':
+          description: List of today's batches
+  /api/users:
+    get:
+      summary: Get users (optionally filter by role)
+      parameters:
+        - in: query
+          name: role
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of users
+  /api/summary:
+    get:
+      summary: Get summary statistics (Supervisor only)
+      responses:
+        '200':
+          description: Summary statistics
+  /api/summary/trends:
+    get:
+      summary: Get summary trends (Supervisor only)
+      responses:
+        '200':
+          description: Trends data
+  /api/otp/generate:
+    post:
+      summary: Generate OTP for order
+      responses:
+        '200':
+          description: OTP generated
+  /api/finance/export:
+    get:
+      summary: Export cash ledger (CSV or JSON)
+      parameters:
+        - in: query
+          name: format
+          schema:
+            type: string
+            enum: [csv, json]
+      responses:
+        '200':
+          description: Exported ledger
+  # Add more endpoints for payment, settlement, etc. as needed 

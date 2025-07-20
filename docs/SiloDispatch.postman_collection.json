@@ -1,0 +1,130 @@
+{
+  "info": {
+    "name": "SiloDispatch Core Flow",
+    "_postman_id": "silo-dispatch-core-flow",
+    "description": "Covers order upload, delivery confirmation, and settlement request.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Supervisor Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"supervisor@silodispatch.com\",\n  \"password\": \"supervisor123\"\n}"
+        },
+        "url": { "raw": "http://localhost:5000/api/auth/login", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api", "auth", "login"] }
+      }
+    },
+    {
+      "name": "2. Upload Orders (CSV)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{SUPERVISOR_TOKEN}}" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file", "src": "" }
+          ]
+        },
+        "url": { "raw": "http://localhost:5000/api/orders/upload", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api", "orders", "upload"] }
+      }
+    },
+    {
+      "name": "3. Generate Batches",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{SUPERVISOR_TOKEN}}" }
+        ],
+        "url": { "raw": "http://localhost:5000/api/batches/generate", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api", "batches", "generate"] }
+      }
+    },
+    {
+      "name": "4. Assign Driver to Batch (example)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{SUPERVISOR_TOKEN}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"assignedDriverId\": \"{{DRIVER_ID}}\"\n}"
+        },
+        "url": { "raw": "http://localhost:5000/api/batches/{{BATCH_ID}}/assign", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api", "batches", "{{BATCH_ID}}", "assign"] }
+      }
+    },
+    {
+      "name": "5. Driver Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"driver@silodispatch.com\",\n  \"password\": \"driver123\"\n}"
+        },
+        "url": { "raw": "http://localhost:5000/api/auth/login", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api", "auth", "login"] }
+      }
+    },
+    {
+      "name": "6. Driver: Mark Order Delivered",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{DRIVER_TOKEN}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": \"{{ORDER_ID}}\",\n  \"action\": \"DELIVERED\"\n}"
+        },
+        "url": { "raw": "http://localhost:5000/api/driver-actions", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api", "driver-actions"] }
+      }
+    },
+    {
+      "name": "7. Driver: Submit Settlement Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{DRIVER_TOKEN}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"batchId\": \"{{BATCH_ID}}\",\n  \"cashEntries\": [\"{{CASH_LEDGER_ID}}\"],\n  \"payments\": [\"{{PAYMENT_ID}}\"]\n}"
+        },
+        "url": { "raw": "http://localhost:5000/api/settlement/request", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api", "settlement", "request"] }
+      }
+    },
+    {
+      "name": "8. Supervisor: Approve Settlement",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{SUPERVISOR_TOKEN}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"APPROVED\"\n}"
+        },
+        "url": { "raw": "http://localhost:5000/api/settlement/{{SETTLEMENT_ID}}/approve", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api", "settlement", "{{SETTLEMENT_ID}}", "approve"] }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "SUPERVISOR_TOKEN", "value": "" },
+    { "key": "DRIVER_TOKEN", "value": "" },
+    { "key": "BATCH_ID", "value": "" },
+    { "key": "ORDER_ID", "value": "" },
+    { "key": "DRIVER_ID", "value": "" },
+    { "key": "CASH_LEDGER_ID", "value": "" },
+    { "key": "PAYMENT_ID", "value": "" },
+    { "key": "SETTLEMENT_ID", "value": "" }
+  ]
+} 

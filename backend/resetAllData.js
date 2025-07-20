@@ -56,8 +56,7 @@ async function resetAllData() {
       { 
         $unset: { 
           assignedDriverId: "",
-          assignedAt: "",
-          status: ""
+          assignedAt: ""
         },
         $set: {
           status: 'PENDING'

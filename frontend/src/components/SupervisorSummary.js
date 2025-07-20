@@ -118,7 +118,7 @@ function SupervisorSummary() {
             </div>
             <div>
               <div className="fw-bold fs-4">{summary.pendingOrders}</div>
-              <div className="text-muted">Pending Orders</div>
+              <div className="text-muted">Unassigned Orders</div>
               <div className="small text-success">
                 {orderChange !== null ? `${orderChange > 0 ? '+' : ''}${orderChange.toFixed(1)}% from yesterday` : '-'}
               </div>

@@ -13,9 +13,9 @@ function SupervisorSettlements() {
   const [showAll, setShowAll] = useState(false);
 
   const fetchAllSettlements = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
+      setLoading(true);
+      setError('');
+      try {
       const params = new URLSearchParams();
       
       // Only add date filters if not showing all
@@ -311,7 +311,7 @@ function SupervisorSettlements() {
                           </tbody>
                         </Table>
                       </div>
-                    </div>
+              </div>
                   )}
                 </Card.Body>
               </Card>
