@@ -1,6 +1,7 @@
 // scripts/evaluateRouting.js
-
-const { kMeansCluster, mockGeocode } = require('../backend/src/utils/clustering');
+// node scripts/evaluateRouting.js
+require('dotenv').config({ path: './backend/.env' });
+const { kMeansCluster, mockGeocode, getGeocode } = require('../backend/src/utils/clustering');
 const haversine = (lat1, lon1, lat2, lon2) => {
   const toRad = (x) => (x * Math.PI) / 180;
   const R = 6371; // km
@@ -17,18 +18,26 @@ const haversine = (lat1, lon1, lat2, lon2) => {
 // Mock depot location (e.g., Mumbai)
 const DEPOT = { lat: 19.0760, lon: 72.8777 };
 
-// Generate mock orders (or load from DB)
-function generateMockOrders(n) {
+// Define a set of actual pincodes (replace or extend this list as needed)
+const ACTUAL_PINCODES = [
+  "400001", "400002", "400003", "400004", "400005",
+  "400006", "400007", "400008", "400009", "400010",
+  "400011", "400012", "400013", "400014", "400015",
+  "400016", "400017", "400018", "400019", "400020"
+];
+
+// Generate orders using actual pincodes
+async function generateMockOrders(pincodes) {
   const orders = [];
-  for (let i = 0; i < n; i++) {
-    const pincode = (400000 + Math.floor(Math.random() * 100)).toString();
-    const [lat, lon] = mockGeocode('', pincode);
+  for (let i = 0; i < pincodes.length; i++) {
+    const pincode = pincodes[i];
+    const coords = await getGeocode(pincode); // Use real geocode
     orders.push({
       id: i + 1,
       address: `Address ${i + 1}`,
       pincode,
       weight: 1 + Math.random() * 4,
-      coords: [lat, lon],
+      coords: coords || mockGeocode('', pincode), // fallback to mock if geocode fails
     });
   }
   return orders;
@@ -46,6 +55,7 @@ function naiveTotalDistance(orders) {
 // Clustered: Group orders, deliver each batch in one trip (depot → all orders → depot)
 function clusteredTotalDistance(orders, k) {
   const clusters = kMeansCluster(orders, k);
+
   let total = 0;
   for (const cluster of clusters) {
     let route = [DEPOT, ...cluster.map(o => ({ lat: o.coords[0], lon: o.coords[1] })), DEPOT];
@@ -57,14 +67,14 @@ function clusteredTotalDistance(orders, k) {
 }
 
 async function main() {
-  const NUM_ORDERS = 50;
-  const orders = generateMockOrders(NUM_ORDERS);
+  // Use actual pincodes instead of random ones
+  const orders = await generateMockOrders(ACTUAL_PINCODES);
 
   // Naïve
   const naiveKm = naiveTotalDistance(orders);
 
   // Clustered (k = orders/10 for demo, or use your real logic)
-  const k = Math.ceil(NUM_ORDERS / 10);
+  const k = Math.ceil(orders.length / 10);
   const clusteredKm = clusteredTotalDistance(orders, k);
 
   const saved = naiveKm - clusteredKm;
